@@ -2,6 +2,7 @@ from conan import ConanFile
 from conan.tools.files import apply_conandata_patches, get, files
 from conan.errors import ConanInvalidConfiguration
 from conans import CMake
+from conan.tools.scm import Version
 import functools
 import os
 
@@ -73,6 +74,8 @@ class GdalConan(ConanFile):
         "with_xml2": [True, False],
         "with_zlib": [True, False],
         "with_zstd": [True, False],
+        "with_deflate64": [True, False],
+        "with_static_zlib": [True, False]
     }
 
     default_options = {
@@ -123,6 +126,8 @@ class GdalConan(ConanFile):
         "with_xml2": False,
         "with_zlib": True,
         "with_zstd": False,
+        "with_deflate64":True,
+        "with_static_zlib": False
     }
 
     @property
@@ -141,6 +146,8 @@ class GdalConan(ConanFile):
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
+        else:
+            self.options.with_static_zlib = False #this flag is only relevant to windows
 
     def configure(self):
         if self.options.with_crypto != "deprecated":
@@ -707,6 +714,10 @@ class GdalConan(ConanFile):
         else:
             cmake.definitions["ZSTD_FOUND"] = False
 
+        cmake.definitions["ENABLE_DEFLATE64"] = self.options.with_deflate64
+
+        if self.options.get_safe("with_static_zlib", True):
+            cmake.definitions['ZLIB_IS_STATIC'] = 1
 
         for k, v in cmake.definitions.items():
             print(k, " = ", v)
